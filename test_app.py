@@ -35,8 +35,8 @@ class TestWebApp(unittest.TestCase):
         assert response.status_code == 200
 
     def test_no_access_to_profile(self):
-        # TODO: Check that non-logged-in user should be redirected to /login
-        assert False
+        response = self.client.get('/profile', follow_redirects = True)
+        assert response.request.path == '/login'
 
     def test_register_user(self):
         response = self.client.post('/signup', data = {
@@ -78,9 +78,23 @@ class TestWebApp(unittest.TestCase):
             'password' : 'test123'
         }, follow_redirects = True)
         assert response.status_code == 200 
+        user = User.query.filter_by(email="user@test.com").first()
+        assert not user
+
 
     def test_xss_vulnerability(self):
-        # TODO: Can we store javascript tags in the username field?
-        assert False
+        response = self.client.post('/signup', data = {
+            'email' : 'user2@test.com',
+            'name' : '</h1><script>alert(1)</script>',
+            'password' : 'test123'
+        }, follow_redirects = True)
+        assert response.status_code == 200
+        response2 = self.client.post('/login', data = {
+            'email' : 'user2@test.com',
+            'password' : 'test123'
+        }, follow_redirects = True)
+        data = response2.get_data(True)
+        assert data.__contains__('Welcome, &lt;/h1&gt;&lt;script&gt;alert(1)&lt;/script&gt;!\n') 
+        
 
 
